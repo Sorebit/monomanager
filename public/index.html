@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<title>MonoManager</title>
+	<link rel="stylesheet" type="text/css" href="universal-wip.css"> 
+	<link rel="stylesheet" type="text/css" href="style.css"> 
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+</head>
+<body>
+	<div class="nav">
+		<div class="header">MonoManager</div>
+		<button class="btn-overlay">+ Add player</button>
+	</div>
+	<div class="main">
+		<div class="players"></div>
+	</div>
+	<div class="overlay">
+		<div class="overlay-window" id="add-form">
+			<p>Input the name of player to add:</p>
+			<div class="submit">
+				<input type="text">
+				<button>Add</button>
+			</div>
+		</div>
+		<div class="overlay-window" id="user-sure">
+			<p>Are you sure you want to remove this player?</p>
+			<div class="btn-group">
+				<button class="btn-yes">Yes</button>
+				<button class="btn-no">No</button>
+			</div>
+		</div>
+	</div>
+	<script type="text/javascript" src="src/main.js"></script>
+</body>
+</html>
