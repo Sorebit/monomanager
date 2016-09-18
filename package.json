@@ -1,14 +1,16 @@
 {
   "name": "monomanager",
   "version": "1.0.0",
-  "description": "##Prototype",
+  "description": "Monopoly money manager",
   "main": "index.js",
-  "dependencies": {},
+  "dependencies": {
+    "express": "^4.13.0"
+  },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "start": "nodemon server/server.js"
   },
-  "author": "",
+  "author": "Sorebit",
   "license": "ISC"
 }
