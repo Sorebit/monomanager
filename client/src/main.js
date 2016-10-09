@@ -100,6 +100,8 @@ function addPlayer(name, account, id) {
 }
 
 function update() {
+	var payToAmount = null;
+	var performer = null;
 	$('.player').each(function() {
 		var id = $(this).attr('id');
 		if(players[id] !== undefined) {	
@@ -149,7 +151,6 @@ function main() {
 		// Parent container
 		var pe = $(this).parent().parent();
 		payAmount(players[pe.attr('id')], pe.find('input').val());
-		enablePersonButtons(false);
 	});
 	// Pay to button
 	$(document).on('click', '.btn-pay-to', function(){
