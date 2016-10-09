@@ -2,7 +2,7 @@
   "name": "monomanager",
   "version": "1.0.0",
   "description": "Monopoly money manager",
-  "main": "index.js",
+  "main": "server/server.js",
   "dependencies": {
     "express": "^4.13.0",
     "nodemon": "^1.10.2"
