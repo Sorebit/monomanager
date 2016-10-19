@@ -4,7 +4,7 @@
 
 **MonoManager** is a simple, JS-based manager for your monopoly money
 
-![preview](https://raw.githubusercontent.com/Sorebit/monomanager/master/preview.png)
+![preview](/preview.png)
 
 ### Usage
 - `npm install` to install needed packages
