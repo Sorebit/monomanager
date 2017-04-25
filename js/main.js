@@ -75,6 +75,7 @@ function loadPlayers() {
 }
 // Add player to manager
 function addPlayer(name, account, id) {
+	//
 	// Recreate players to add prototypes
 	var p = new Player(name, account, id);
 	if(p.id >= currentId)
@@ -114,7 +115,7 @@ function update() {
 
 function add() {
 	var input = $('#add-form input');
-	var name = input.val();
+	var name = escape(input.val());
 	if(name.length > 0){
 		addPlayer(name);
 		showWindow(false);
