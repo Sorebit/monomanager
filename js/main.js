@@ -109,6 +109,9 @@ function update() {
 }
 
 function load() {
+  if(!localStorage['players']) {
+    localStorage['players'] = JSON.stringify({});
+  }
   players = JSON.parse(localStorage['players']);
   for(let id in players) {
     addPlayer(null, id);
