@@ -39,12 +39,18 @@ function elFromId(id) {
 let players = {};
 
 // Add player to manager
-function addPlayer(name) {
-  const p = {
-    id: nextId(),
-    name: name || issueLink(),
-    money: 5000
-  };
+function addPlayer(name, id) {
+
+  let p;
+  if(!id) {  
+    p = {
+      id: nextId(),
+      name: name || issueLink(),
+      money: 5000
+    };
+  } else {
+    p = players[id];
+  }
 
   const nameEl = $('<p class="player-name">').text(p.name);
 
@@ -98,7 +104,16 @@ function update() {
   }
 
   // Update storage
+  delete localStorage['players'];
+  localStorage['players'] = JSON.stringify(players);
+}
 
+function load() {
+  players = JSON.parse(localStorage['players']);
+  for(let id in players) {
+    addPlayer(null, id);
+  }
+  update();
 }
 
 function getInput(id, leave) {
@@ -199,6 +214,7 @@ $(document).ready(function() {
     modal.find('#btn-remove').off('click').on('click', function(ev) {
       modal.modal('hide');
       removePlayer(id);
+      update();
     });
   });
 
@@ -245,6 +261,10 @@ $(document).ready(function() {
     let act = processAction(ev);
     console.log(act.id, act.input);
 
+    if(act.input > players[act.id].money) {
+      console.log('Insuficient funds');
+      return;      
+    }
     players[act.id].money -= act.input;
 
     update();
@@ -274,9 +294,6 @@ $(document).ready(function() {
     });
   });
 
-
-  // Test players
-  addPlayer('One');
-  addPlayer('Two');
-  addPlayer('<script>alert("Three");</script>');
+  // Load players from storage
+  load();
 });
