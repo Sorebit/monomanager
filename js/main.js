@@ -1,216 +1,282 @@
 // To do:
-// - Fade out and disable a player without money
-// - Make this a full game? (socket.io + old monopoly simulation) 
+// - Make this a full game? (sockets + old monopoly simulation) 
 
 'use strict'
 
-var KEY_ESC = 27;
-var KEY_ENTER = 13;
-
-var currentId = 0;
-var payToAmount = null;
-var performer = null;
-var players = [];
-
 // Utility
+function randomString(len) {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+  for(let i = 0; i < len; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+
+  return text;
+}
+
 function isNumber(i) { return typeof i === 'number'; }
-function nextId() { return currentId++; }
+function nextId() { return randomString(8); }
 function inRange(n, a, b) { return (n >= a && n <= b); }
+function issueLink() { return '<a href="https://github.com/sorebit/monomanager/issues">Report this issue</a>'; }
 
-function enablePersonButtons(con) {
-	$('.player').each(function(i) {
-		$(this).find('.target-btn').html( ($(this).attr('id') == performer && con) ? 'Cancel' : 'Me' );
-		$(this).find('.target-btn').attr('disabled', !con);
-	});
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+
+  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
-// Player class
-function Player(name, account, id) {
-	this.name = name || 'John';
-	this.account = account || 15000;
-	this.id = id || nextId();
+function elFromId(id) {
+  return $('[data-id="' + id + '"]');
 }
-// Get button functionality
-function getAmount(player, am) {
-	am = parseInt(am, 10);
-	if(isNumber(am) && !isNaN(am))
-		player.account += am;
-	update();
-};
-// Pay button functionality
-function payAmount(player, am) {
-	am = parseInt(am, 10);
-	if(isNumber(am) && !isNaN(am))
-		player.account -= am;
-	update();
-};
-// Set new action target
-function payTarget(bel) {
-	var id = bel.parentElement.parentElement.id;
-	if(isNumber(payToAmount) && !isNaN(payToAmount)) {
-		players[performer].account -= payToAmount;
-		players[id].account += payToAmount;
-	}
-	enablePersonButtons(false);
-	update();
-}
-// Save players to local storage
-function savePlayers() {
-	localStorage.setItem('players', JSON.stringify(players));
-}
-// Load players from local storage
-function loadPlayers() {
-	// Clear old players
-	players = [];
-	$('.players').html('');
-	currentId = 0;
 
-	var newPlayers = JSON.parse(localStorage.getItem('players'));
-	// Add new players
-	for(var i in newPlayers) {
-		addPlayer(newPlayers[i].name, newPlayers[i].account, newPlayers[i].id);
-	}
+let players = {};
 
-	enablePersonButtons(false);
-}
 // Add player to manager
-function addPlayer(name, account, id) {
-	//
-	// Recreate players to add prototypes
-	var p = new Player(name, account, id);
-	if(p.id >= currentId)
-		currentId = p.id + 1;
+function addPlayer(name) {
+  const p = {
+    id: nextId(),
+    name: name || issueLink(),
+    money: 5000
+  };
 
-	$('<div class="player" id="'+p.id+'">\
-			<button class="btn-close">×</button>\
-			<div class="name">'+p.name+'</div>\
-			<div class="account">$'+p.account+'</div>\
-			<div class="btn-group">\
-				<button class="btn-get">Get</button>\
-				<button class="btn-pay">Pay</button>\
-				<button class="btn-pay-to">Pay To</button>\
-				<button class="target-btn" onclick="payTarget(this)">Me</button>\
-			</div>\
-			<input type="text"</input>\
-		</div>').appendTo('.players');
-	// return;
-	if(players.indexOf(p) < 0)
-		players[p.id] = p;
-	else
-		console.log('Player already exists');
+  const nameEl = $('<p class="player-name">').text(p.name);
+
+  const el = $('<div class="player" data-id="' + p.id + '"></div>');
+  el.append('<button type="button" class="close" data-toggle="modal" data-target="#modal-remove-player"><span aria-hidden="true">&times;</span></button>');
+  el.append(nameEl);
+
+  el.append($('<p class="player-money">').text('$' + p.money));
+  el.append($('<div class="form-group">').append('<input class="form-control">'));
+
+  const btnGroup = $('<div class="btn-group btn-group-justified" role="group">');
+  btnGroup.append($('<div class="btn-group" role="group">').append($('<button class="btn btn-default btn-get">').text('Get')));
+  btnGroup.append($('<div class="btn-group" role="group">').append($('<button class="btn btn-default btn-pay">').text('Pay')));
+  btnGroup.append($('<div class="btn-group" role="group">').append($('<button class="btn btn-default btn-to">').text('Pay to')));
+  btnGroup.append($('<div class="btn-group" role="group">').append($('<button class="btn btn-default btn-me" disabled="disabled">').text('Me')));
+
+  el.append(btnGroup);
+
+  players[p.id] = p;
+  $('.players').append(el);
+
+  console.log(players);
+}
+
+function removePlayer(id) {
+  if(!players[id]) {
+    console.error('Player does not exist.');
+    return;
+  }
+
+  console.log('Removing', players[id].name);
+
+  const el = elFromId(id);
+
+  delete players[id];
+  el.fadeOut(function() {
+    el.remove();
+  });
+
+  console.log(players);
 }
 
 function update() {
-	var payToAmount = null;
-	var performer = null;
-	$('.player').each(function() {
-		var id = $(this).attr('id');
-		if(players[id] !== undefined) {	
-			$(this).find('.account').html('$'+players[id].account);
-			$(this).find('input').val('');
-		}
-	});
-	savePlayers();
+  // Update view
+  for(let id in players) {
+    if(players[id].money <= 0) {
+      players[id].money = 0;
+      disable(id);
+    }
+    elFromId(id).find('.player-money').text('$' + players[id].money);
+  }
+
+  // Update storage
+
 }
 
-function add() {
-	var input = $('#add-form input');
-	var name = escape(input.val());
-	if(name.length > 0){
-		addPlayer(name);
-		showWindow(false);
-		enablePersonButtons(false);
-	}
-	update();
+function getInput(id, leave) {
+  const input = elFromId(id).find('input');
+  const val = parseInt(input.val(), 10);
+  if(!leave) {
+    input.val('');
+  }
+  if(isNaN(val)) {
+    return 0;
+  }
+  return val;
 }
 
-function showWindow(id, parent){
-	// Hide all windows
-	$('#add-form').hide();
-	$('#user-sure').hide();
-	// Show selected window or hide overlay
-	if(id){
-		$(id).show();
-		$('.overlay').fadeIn(100);
-	} else {
-		$('.overlay').fadeOut(100);
-	}
-	// Clear input
-	$('#add-form input').val('');
+function processAction(ev, leave) {
+  // I'm not sure if that's a good way of getting player element
+  const el = $(ev.target).parent().parent().parent();
+  const id = el.data('id');
+  const input = getInput(id, leave);
+  return {
+    el: el,
+    id: id,
+    input: input
+  };
 }
 
-function main() {
-	// Get button
-	$(document).on('click', '.btn-get', function(){
-		// Parent container
-		var pe = $(this).parent().parent();
-		getAmount(players[pe.attr('id')], pe.find('input').val());
-		enablePersonButtons(false);
-	});
-	// Pay button
-	$(document).on('click', '.btn-pay', function(){
-		// Parent container
-		var pe = $(this).parent().parent();
-		payAmount(players[pe.attr('id')], pe.find('input').val());
-	});
-	// Pay to button
-	$(document).on('click', '.btn-pay-to', function(){
-		// Parent container
-		var pe = $(this).parent().parent();
-		performer = pe.attr('id');
-		payToAmount = parseInt(pe.find('input').val(), 10);;
-		enablePersonButtons(true);
-	});
-
-	// Player add button shows overlay menu
-	$('.btn-overlay').click(function(){ 
-		showWindow('#add-form');
-		$('#add-form input').focus();
-	});
-	// Submit button adds player with name from inout
-	$('#add-form button').click(add);
-	// If user click outside of form window, hide overlay
-	$('.overlay').click(function(e){
-		if(e.target.className === 'overlay'){
-			showWindow(false);
-		}
-	});
-	// No button
-	$('.btn-no').click(function(){
-		showWindow(false);
-	});
-	// Remove player button
-	$(document).on('click', '.player .btn-close', function(){
-		var parent = $(this).parent();
-		var id = parent.attr('id');
-		// Confirmation window
-		showWindow('#user-sure', parent);
-		$('.btn-yes').click(function() {
-			parent.remove();
-			players.splice(id, 1);
-			showWindow(false);
-			update();
-		});
-	});
-	// Keypresses
-	$(document).keypress(function(e){
-		// Enter/return submits
-		if(e.keyCode === KEY_ENTER && $('#add-form input').val().length) {
-			add();
-		}
-		// Esc hides overlay
-		if(e.keyCode === KEY_ESC) {
-			showWindow(false);
-		}
-	});
-
-	// Disable all me buttons
-	enablePersonButtons(false);
-	// Hide all overlay windows
-	showWindow(false);
-
-	// Load players from local storage
-	loadPlayers();
+function disable(id) {
+  console.log('Disable id:', id);
+  players[id].disabled = true;
+  const el = elFromId(id);
+  el.attr('disabled', 'disabled');
+  el.find('input').attr('disabled', 'disabled');
+  el.find('.btn').attr('disabled', 'disabled');
+  el.find('p').attr('disabled', 'disabled');
 }
 
-$(document).ready(main);
+function enable(id) {
+  console.log('Enable id:', id);
+  players[id].disabled = false;
+  const el = elFromId(id);
+  el.removeAttr('disabled');
+  el.find('input').removeAttr('disabled');
+  el.find('.btn').removeAttr('disabled');
+  el.find('p').removeAttr('disabled');
+}
+
+function prepareTo(senderId) {
+  $('.player').find('.btn').attr('disabled', 'disabled');
+  for(var id in players) {
+    const el = elFromId(id);
+    if(!players[id].disabled) {
+      el.find('.btn-me').removeAttr('disabled');
+      el.find('input').attr('disabled', 'disabled');
+    }
+    if(id !== senderId) {
+      el.find('input').val('');
+    }
+  }
+  elFromId(senderId).find('.btn-me').text('Cancel');
+  $('#btn-remove').attr('disabled', 'disabled');
+  $('#btn-add').attr('disabled', 'disabled');
+}
+
+function afterTo() {
+  for(var i in players) {
+    if(!players[i].disabled) {
+      const el = elFromId(players[i].id);
+      el.find('.btn').removeAttr('disabled');
+      el.find('input').removeAttr('disabled');
+    }
+  }
+  $('.btn-me').text('Me');
+  $('.btn-me').attr('disabled', 'disabled');
+  $('#btn-remove').removeAttr('disabled');
+  $('#btn-add').removeAttr('disabled');
+  $('input').val('');
+}
+
+$(document).ready(function() {
+  // Setup remove modal
+  $('#modal-remove-player').on('show.bs.modal', function(ev) {
+    const button = $(ev.relatedTarget); // Button that triggered the modal
+    const id = button.parent().data('id'); // Extract info from data-* attributes
+    const modal = $(this);
+
+    if(!players[id]) {
+      console.error('Player does not exist.');
+    }
+
+    let name = issueLink();
+    if(players[id]) {
+      name = escapeHtml(players[id].name);
+    }
+
+    modal.find('.modal-title').text('Remove player');
+    modal.find('.modal-body').html('Are you sure you want to remove player <strong>' + name + '</strong>?');
+
+    modal.find('#btn-remove').off('click').on('click', function(ev) {
+      modal.modal('hide');
+      removePlayer(id);
+    });
+  });
+
+  // Setup add modal
+  $('#modal-add-player').on('show.bs.modal', function(ev) {
+    const modal = $(this);
+    const form = modal.find('.form-group');
+    const input = modal.find('input');
+
+    // Reset modal
+    form.removeClass('has-error');
+    input.val('');
+
+    modal.find('#btn-add').off('click').on('click', function(ev) {
+      const name = input.val();
+      
+      if(!name) {
+        form.addClass('has-error');
+        return;
+      }
+
+      form.removeClass('has-error');
+      addPlayer(name);
+      modal.modal('hide');
+    });
+  });
+
+  // After the modal appears, focus the input
+  $('#modal-add-player').on('shown.bs.modal', function(ev) {
+    $(this).find('input').focus();
+  });
+
+  // Action handlers
+  $(document).on('click', '.btn-get', function(ev) {
+    let act = processAction(ev);
+    console.log(act.id, act.input);
+    
+    players[act.id].money += act.input;
+
+    update();
+  }); 
+
+  $(document).on('click', '.btn-pay', function(ev) {
+    let act = processAction(ev);
+    console.log(act.id, act.input);
+
+    players[act.id].money -= act.input;
+
+    update();
+  }); 
+
+  $(document).on('click', '.btn-to', function(ev) {
+    let act = processAction(ev, true);
+    // Do not process empty actions
+    if(!act.input) {
+      return;
+    }
+    if(act.input > players[act.id].money) {
+      console.log('Insuficient funds');
+      return;
+    }
+
+    console.log(act.id, act.input);
+    prepareTo(act.id);
+    // TODO: Add insuficient funds popup
+    $('.btn-me').off('click').on('click', function(ev) {
+      let trg = processAction(ev, true);
+      console.log(act.id, act.input, '=>', trg.id);
+      players[act.id].money -= act.input;
+      players[trg.id].money += act.input;
+      afterTo();
+      update();
+    });
+  });
+
+
+  // Test players
+  addPlayer('One');
+  addPlayer('Two');
+  addPlayer('<script>alert("Three");</script>');
+});

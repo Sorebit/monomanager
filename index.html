@@ -1,36 +1,84 @@
 <!DOCTYPE html>
 <html>
-<head>
-	<meta charset="utf-8" />
-	<title>MonoManager</title>
-	<link rel="stylesheet" type="text/css" href="css/universal-wip.css"> 
-	<link rel="stylesheet" type="text/css" href="css/main.css"> 
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
-</head>
-<body>
-	<div class="nav">
-		<div class="header">MonoManager</div>
-		<button class="btn-overlay">+ Add player</button>
-	</div>
-	<div class="main">
-		<div class="players"></div>
-	</div>
-	<div class="overlay">
-		<div class="overlay-window" id="add-form">
-			<p>Input the name of player to add:</p>
-			<div class="submit">
-				<input type="text">
-				<button>Add</button>
-			</div>
-		</div>
-		<div class="overlay-window" id="user-sure">
-			<p>Are you sure you want to remove this player?</p>
-			<div class="btn-group">
-				<button class="btn-yes">Yes</button>
-				<button class="btn-no">No</button>
-			</div>
-		</div>
-	</div>
-	<script type="text/javascript" src="js/main.js"></script>
-</body>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" type="text/css" href="css/main.css"> 
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+    <title>MonoManager</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <h class="navbar-brand" href="#">MonoManager</h>
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse navbar-right">
+          <button type="button" class="btn btn-primary navbar-btn" data-toggle="modal" data-target="#modal-add-player">
+            <span class="glyphicon glyphicon-plus"></span> Add new player
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main id="content" role="main">
+      <div class="container">
+        <div class="players">
+
+        </div>
+
+        <div id="modal-add-player" class="modal fade" tabindex="-1" role="dialog">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Add new player</h4>
+              </div>
+              <div class="modal-body">
+                <div class="form-group">
+                  <label class="control-label" for="new-player-name">Input new player's name:</label>
+                  <input type="text" class="form-control" id="new-player-name">
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btn-add">Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="modal-remove-player" class="modal fade" tabindex="-1" role="dialog">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Remove player</h4>
+              </div>
+              <div class="modal-body"></div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btn-remove">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <script type="text/javascript" src="js/main.js"></script>
+  </body>
 </html>
