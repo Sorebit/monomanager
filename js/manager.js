@@ -7,18 +7,12 @@
 function randomString(len) {
   let text = '';
   const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
   for(let i = 0; i < len; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
-
   return text;
 }
 
-function isNumber(i) { return typeof i === 'number'; }
-function nextId() { return randomString(8); }
-function inRange(n, a, b) { return (n >= a && n <= b); }
-function issueLink() { return '<a href="https://github.com/sorebit/monomanager/issues">Report this issue</a>'; }
 
 function escapeHtml(text) {
   const map = {
@@ -36,15 +30,16 @@ function elFromId(id) {
   return $('[data-id="' + id + '"]');
 }
 
+function issueLink() { return '<a href="https://github.com/sorebit/monomanager/issues">Report this issue</a>'; }
+
 let players = {};
 
 // Add player to manager
 function addPlayer(name, id) {
-
   let p;
   if(!id) {  
     p = {
-      id: nextId(),
+      id: randomString(8),
       name: name || issueLink(),
       money: 5000
     };
@@ -72,25 +67,19 @@ function addPlayer(name, id) {
   players[p.id] = p;
   $('.players').append(el);
 
-  console.log(players);
+  update();
 }
 
 function removePlayer(id) {
   if(!players[id]) {
-    console.error('Player does not exist.');
+    spawnError('Player you want to remove does not exist.');
     return;
   }
-
-  console.log('Removing', players[id].name);
-
   const el = elFromId(id);
-
   delete players[id];
   el.fadeOut(function() {
     el.remove();
   });
-
-  console.log(players);
 }
 
 function update() {
@@ -119,23 +108,15 @@ function load() {
   update();
 }
 
-function getInput(id, leave) {
-  const input = elFromId(id).find('input');
-  const val = parseInt(input.val(), 10);
-  if(!leave) {
-    input.val('');
-  }
-  if(isNaN(val)) {
-    return 0;
-  }
-  return val;
-}
-
-function processAction(ev, leave) {
+function processAction(ev) {
   // I'm not sure if that's a good way of getting player element
   const el = $(ev.target).parent().parent().parent();
   const id = el.data('id');
-  const input = getInput(id, leave);
+  let input = parseInt(elFromId(id).find('input').val(), 10);
+  if(isNaN(input)) {
+    input = false;
+  }
+
   return {
     el: el,
     id: id,
@@ -144,55 +125,71 @@ function processAction(ev, leave) {
 }
 
 function disable(id) {
-  console.log('Disable id:', id);
   players[id].disabled = true;
   const el = elFromId(id);
-  el.attr('disabled', 'disabled');
-  el.find('input').attr('disabled', 'disabled');
-  el.find('.btn').attr('disabled', 'disabled');
-  el.find('p').attr('disabled', 'disabled');
+  disableEl(el, el.find('input'), el.find('.btn'), el.find('p'));
 }
 
 function enable(id) {
-  console.log('Enable id:', id);
   players[id].disabled = false;
   const el = elFromId(id);
-  el.removeAttr('disabled');
-  el.find('input').removeAttr('disabled');
-  el.find('.btn').removeAttr('disabled');
-  el.find('p').removeAttr('disabled');
+  enableEl(el, el.find('input'), el.find('.btn'), el.find('p'));
+}
+
+function disableEl() {
+  for(let i in arguments) {
+    if(typeof arguments[i] === 'Object') {
+      arguments[i].attr('disabled', 'disabled');
+    } else {
+      $(arguments[i]).attr('disabled', 'disabled');
+    }
+  }
+}
+
+function enableEl() {
+  for(let i in arguments) {
+    if(typeof arguments[i] === 'Object') {
+      arguments[i].removeAttr('disabled');
+    } else {
+      $(arguments[i]).removeAttr('disabled');
+    }
+  }
 }
 
 function prepareTo(senderId) {
-  $('.player').find('.btn').attr('disabled', 'disabled');
+  disableEl($('.player').find('.btn'));
   for(var id in players) {
     const el = elFromId(id);
     if(!players[id].disabled) {
       el.find('.btn-me').removeAttr('disabled');
-      el.find('input').attr('disabled', 'disabled');
+      disableEl(el.find('input'));
     }
     if(id !== senderId) {
       el.find('input').val('');
     }
   }
   elFromId(senderId).find('.btn-me').text('Cancel');
-  $('#btn-remove').attr('disabled', 'disabled');
-  $('#btn-add').attr('disabled', 'disabled');
+  disableEl('#btn-remove', '#btn-add');
 }
 
 function afterTo() {
   for(var i in players) {
     if(!players[i].disabled) {
       const el = elFromId(players[i].id);
-      el.find('.btn').removeAttr('disabled');
-      el.find('input').removeAttr('disabled');
+      enableEl(el.find('.btn'), el.find('input'));
     }
   }
   $('.btn-me').text('Me');
-  $('.btn-me').attr('disabled', 'disabled');
-  $('#btn-remove').removeAttr('disabled');
-  $('#btn-add').removeAttr('disabled');
+  disableEl('.btn-me');
+  enableEl('#btn-remove', '#btn-add');
   $('input').val('');
+}
+
+function spawnError(text) {
+  const el = $('<div class="alert alert-danger alert-dismissable fade in" role="alert">');
+  el.append('<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>');
+  el.append('<strong>An error occured!</strong> ' + text);
+  $('.errors').append(el);
 }
 
 $(document).ready(function() {
@@ -252,44 +249,38 @@ $(document).ready(function() {
 
   // Action handlers
   $(document).on('click', '.btn-get', function(ev) {
-    let act = processAction(ev);
-    console.log(act.id, act.input);
-    
+    let act = processAction(ev);    
     players[act.id].money += act.input;
-
+    elFromId(act.id).find('input').val('');
     update();
   }); 
 
   $(document).on('click', '.btn-pay', function(ev) {
     let act = processAction(ev);
-    console.log(act.id, act.input);
-
     if(act.input > players[act.id].money) {
-      console.log('Insuficient funds');
+      spawnError('Insufficient funds to complete the transaction.');
       return;      
     }
     players[act.id].money -= act.input;
-
+    elFromId(act.id).find('input').val('');
     update();
   }); 
 
   $(document).on('click', '.btn-to', function(ev) {
-    let act = processAction(ev, true);
+    let act = processAction(ev);
     // Do not process empty actions
-    if(!act.input) {
+    if(act.input === false) {
+      elFromId(act.id).find('input').val('');
       return;
     }
     if(act.input > players[act.id].money) {
-      console.log('Insuficient funds');
+      spawnError('Insufficient funds to complete the transaction.');
       return;
     }
 
-    console.log(act.id, act.input);
     prepareTo(act.id);
-    // TODO: Add insuficient funds popup
     $('.btn-me').off('click').on('click', function(ev) {
       let trg = processAction(ev, true);
-      console.log(act.id, act.input, '=>', trg.id);
       players[act.id].money -= act.input;
       players[trg.id].money += act.input;
       afterTo();
