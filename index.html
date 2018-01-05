@@ -26,6 +26,12 @@
           </button>
         </div>
         <div id="navbar" class="collapse navbar-collapse navbar-right">
+          <button type="button" class="btn btn-default navbar-btn btn-undo" data-toggle="modal" data-target="#modal-undo">
+            <span class="glyphicon glyphicon-chevron-left"></span> Undo
+          </button>
+          <button type="button" class="btn btn-default navbar-btn btn-redo" data-toggle="modal" data-target="#modal-history" disabled="disabled">
+             Redo <span class="glyphicon glyphicon-chevron-right"></span>
+          </button>
           <button type="button" class="btn btn-primary navbar-btn" data-toggle="modal" data-target="#modal-add-player">
             <span class="glyphicon glyphicon-plus"></span> Add new player
           </button>
@@ -43,7 +49,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalLabel">Add new player</h4>
+                <h4 class="modal-title">Add new player</h4>
               </div>
               <div class="modal-body">
                 <div class="form-group">

@@ -30,9 +30,13 @@ function elFromId(id) {
   return $('[data-id="' + id + '"]');
 }
 
-function issueLink() { return '<a href="https://github.com/sorebit/monomanager/issues">Report this issue</a>'; }
+function issueLink() {
+  return '<a href="https://github.com/sorebit/monomanager/issues">Report this issue</a>';
+}
 
 let players = {};
+let history = [];
+let historyIndex = -1;
 
 // Add player to manager
 function addPlayer(name, id) {
@@ -41,7 +45,7 @@ function addPlayer(name, id) {
     p = {
       id: randomString(8),
       name: name || issueLink(),
-      money: 5000
+      money: 15000
     };
   } else {
     p = players[id];
@@ -68,6 +72,7 @@ function addPlayer(name, id) {
   $('.players').append(el);
 
   update();
+  saveAction('addPlayer', {id: p.id});
 }
 
 function removePlayer(id) {
@@ -80,6 +85,7 @@ function removePlayer(id) {
   el.fadeOut(function() {
     el.remove();
   });
+  saveAction('removePlayer', {id: id});
 }
 
 function update() {
@@ -192,6 +198,85 @@ function spawnError(text) {
   $('.errors').append(el);
 }
 
+function saveAction(type, act) {
+  let action = {};
+  if(!act.input && type !== 'addPlayer' && type !== 'removePlayer') return;
+  if(type === 'addPlayer' || type === 'removePlayer') {
+    action = {type: type, id: act.id};
+  }
+  else {
+    action = {type: type, id: act.id, input: act.input};
+    if(type == 'payTo') {
+        action.targetId = act.targetId;
+    }
+  }
+
+  console.log('Saving action', action);
+  if(historyIndex != history.length - 1) {
+    console.log('Rebuild stack');
+    while(historyIndex != history.length - 1)
+      history.pop();
+    historyIndex = history.length - 1;
+  }
+  history.push(action);
+  historyIndex++;
+  // Update history buttons
+  $('.btn-undo').attr('disabled', false);
+  $('.btn-redo').attr('disabled', true);
+}
+
+function undoAction() {
+  // console.log('Undoing', history[historyIndex]);
+  // Handle action
+  const act = history[historyIndex];
+  if(act.type === 'get') {
+    players[act.id].money -= act.input;
+  } else if(act.type === 'pay') {
+    players[act.id].money += act.input;
+  } else if(act.type === 'payTo') {
+    players[act.id].money += act.input;
+    players[act.targetId].money -= act.input;
+  } else if(act.type === 'addPlayer') {
+    console.log('UNDO addPlayer', act.id);
+  } else if(act.type === 'removePlayer') {
+    console.log('UNDO removePlayer', act.id);
+  }
+
+  historyIndex--;
+  // Update buttons
+  if(historyIndex < 0) {
+    // Nothing more to undo
+    $('.btn-undo').attr('disabled', true);
+  }
+  $('.btn-redo').attr('disabled', false);
+}
+
+function redoAction() {
+  historyIndex++;
+  // console.log('Redoing', history[historyIndex]);
+  // Handle action
+  const act = history[historyIndex];
+  if(act.type === 'get') {
+    players[act.id].money += act.input;
+  } else if(act.type === 'pay') {
+    players[act.id].money -= act.input;
+  } else if(act.type === 'payTo') {
+    players[act.id].money -= act.input;
+    players[act.targetId].money += act.input;
+  } else if(act.type === 'addPlayer') {
+    console.log('REDO addPlayer', act.id);
+  } else if(act.type === 'removePlayer') {
+    console.log('REDO removePlayer', act.id);
+  }
+
+  // Update buttons
+  if(historyIndex === history.length - 1) {
+    // Nothing more to redo
+    $('.btn-redo').attr('disabled', true);
+  }
+  $('.btn-undo').attr('disabled', false);
+}
+
 $(document).ready(function() {
   // Setup remove modal
   $('#modal-remove-player').on('show.bs.modal', function(ev) {
@@ -247,14 +332,17 @@ $(document).ready(function() {
     $(this).find('input').focus();
   });
 
-  // Action handlers
+  // ACTION HANDLERS
+  // Get action
   $(document).on('click', '.btn-get', function(ev) {
     let act = processAction(ev);    
     players[act.id].money += act.input;
     elFromId(act.id).find('input').val('');
     update();
+    saveAction('get', act);
   }); 
 
+  // Pay action
   $(document).on('click', '.btn-pay', function(ev) {
     let act = processAction(ev);
     if(act.input > players[act.id].money) {
@@ -264,8 +352,10 @@ $(document).ready(function() {
     players[act.id].money -= act.input;
     elFromId(act.id).find('input').val('');
     update();
+    saveAction('pay', act);
   }); 
 
+  // Send to action
   $(document).on('click', '.btn-to', function(ev) {
     let act = processAction(ev);
     // Do not process empty actions
@@ -284,8 +374,22 @@ $(document).ready(function() {
       players[act.id].money -= act.input;
       players[trg.id].money += act.input;
       afterTo();
+      if(act.id !== trg.id) {
+        act.targetId = trg.id;
+        saveAction('payTo', act);
+      }
       update();
     });
+  });
+
+  $(document).on('click', '.btn-undo', function(ev) {
+    undoAction();
+    update();
+  });
+
+  $(document).on('click', '.btn-redo', function(ev) {
+    redoAction();
+    update();
   });
 
   // Load players from storage
