@@ -13,7 +13,6 @@ function randomString(len) {
   return text;
 }
 
-
 function escapeHtml(text) {
   const map = {
     '&': '&amp;',
@@ -26,6 +25,7 @@ function escapeHtml(text) {
   return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
+// Get element from player id
 function elFromId(id) {
   return $('[data-id="' + id + '"]');
 }
@@ -34,6 +34,7 @@ function issueLink() {
   return '<a href="https://github.com/sorebit/monomanager/issues">Report this issue</a>';
 }
 
+// Globals because it's just a tool 
 let players = {};
 let history = [];
 let historyIndex = -1;
@@ -57,6 +58,7 @@ function addPlayer(name, id, money, prevId) {
     p = players[id];
   }
 
+  // Compose html element for player
   const nameEl = $('<p class="player-name">').text(p.name);
 
   const el = $('<div class="player" data-id="' + p.id + '"></div>');
@@ -74,7 +76,9 @@ function addPlayer(name, id, money, prevId) {
 
   el.append(btnGroup);
 
+  // Add to player list
   players[p.id] = p;
+
   if(prevId) {
     // Add it after a specific player
     el.insertAfter(elFromId(prevId));
@@ -114,7 +118,7 @@ function update() {
     elFromId(id).find('.player-money').text('$' + players[id].money);
   }
 
-  // Update history buttons
+  // Fix history buttons
   if(historyIndex === -1)
     $('.btn-undo').attr('disabled', true);
 
@@ -130,7 +134,6 @@ function load() {
   players = JSON.parse(localStorage['players']);
   for(let id in players) {
     addPlayer(null, id);
-    // saveAction('addPlayer', {id: id, name: players[id].name, money: players[id].money}); // DEVELOPMENT ONLY
   }
   update();
 }
@@ -151,18 +154,21 @@ function processAction(ev) {
   };
 }
 
+// Disbale player
 function disable(id) {
   players[id].disabled = true;
   const el = elFromId(id);
   disableEl(el, el.find('input'), el.find('.btn'), el.find('p'));
 }
 
+// Enable player
 function enable(id) {
   players[id].disabled = false;
   const el = elFromId(id);
   enableEl(el, el.find('input'), el.find('.btn'), el.find('p'));
 }
 
+// Disable element(s)
 function disableEl() {
   for(let i in arguments) {
     if(typeof arguments[i] === 'Object') {
@@ -173,6 +179,7 @@ function disableEl() {
   }
 }
 
+// Enable element(s)
 function enableEl() {
   for(let i in arguments) {
     if(typeof arguments[i] === 'Object') {
@@ -183,6 +190,7 @@ function enableEl() {
   }
 }
 
+// This is called before handling pay-to action
 function prepareTo(senderId) {
   disableEl($('.player').find('.btn'));
   for(var id in players) {
@@ -199,6 +207,7 @@ function prepareTo(senderId) {
   disableEl('#btn-remove', '#btn-add');
 }
 
+// This is called after handling pay-to action
 function afterTo() {
   for(var i in players) {
     if(!players[i].disabled) {
@@ -228,8 +237,7 @@ function saveAction(type, act) {
     if(type === 'removePlayer') {
       action.prevId = act.prevId || '';
     }
-  }
-  else {
+  } else {
     action = {type: type, id: act.id, input: act.input};
     if(type == 'payTo') {
         action.targetId = act.targetId;
@@ -244,7 +252,6 @@ function saveAction(type, act) {
   }
 
   // Save action
-  console.log('Saving action', action);
   history.push(action);
   historyIndex++;
   // Update history buttons
@@ -265,7 +272,6 @@ function undoAction() {
   } else if(act.type === 'addPlayer') {
     removePlayer(act.id);
   } else if(act.type === 'removePlayer') {
-    console.log('UNDO removePlayer', act.id, act.prevId, act.name, act.money);
     addPlayer(act.name, act.id, act.money, act.prevId);
   }
 
@@ -292,7 +298,6 @@ function redoAction() {
   } else if(act.type === 'addPlayer') {
     addPlayer(act.name, act.id, act.money);
   } else if(act.type === 'removePlayer') {
-    console.log('REDO removePlayer', act.id, act.name,act.money);
     removePlayer(act.id);
   }
 
@@ -308,7 +313,7 @@ $(document).ready(function() {
   // Setup remove modal
   $('#modal-remove-player').on('show.bs.modal', function(ev) {
     const button = $(ev.relatedTarget); // Button that triggered the modal
-    const id = button.parent().data('id'); // Extract info from data-* attributes
+    const id = button.parent().data('id');
     const modal = $(this);
 
     if(!players[id]) {
@@ -333,7 +338,7 @@ $(document).ready(function() {
     });
   });
 
-  // Setup add modal
+  // Setup add player modal
   $('#modal-add-player').on('show.bs.modal', function(ev) {
     const modal = $(this);
     const form = modal.find('.form-group');
@@ -386,7 +391,7 @@ $(document).ready(function() {
     saveAction('pay', act);
   }); 
 
-  // Send to action
+  // Send-to action
   $(document).on('click', '.btn-to', function(ev) {
     let act = processAction(ev);
     // Do not process empty actions
