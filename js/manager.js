@@ -1,5 +1,6 @@
-// To do:
+// TODO:
 // - Make this a full game? (sockets + old monopoly simulation) 
+// - Fix undoing removePlayer so that player appears in their place before removal
 
 'use strict'
 
@@ -39,9 +40,15 @@ let history = [];
 let historyIndex = -1;
 
 // Add player to manager
-function addPlayer(name, id) {
+function addPlayer(name, id, money) {
   let p;
-  if(!id) {  
+  if(name && id && typeof(money) === 'number') {
+    p = { 
+      id: id,
+      name: name,
+      money: money
+    }
+  } else if(!id) {  
     p = {
       id: randomString(8),
       name: name || issueLink(),
@@ -72,7 +79,7 @@ function addPlayer(name, id) {
   $('.players').append(el);
 
   update();
-  saveAction('addPlayer', {id: p.id});
+  return p.id;
 }
 
 function removePlayer(id) {
@@ -85,7 +92,6 @@ function removePlayer(id) {
   el.fadeOut(function() {
     el.remove();
   });
-  saveAction('removePlayer', {id: id});
 }
 
 function update() {
@@ -97,6 +103,10 @@ function update() {
     }
     elFromId(id).find('.player-money').text('$' + players[id].money);
   }
+
+  // Update history buttons
+  if(historyIndex === -1)
+    $('.btn-undo').attr('disabled', true);
 
   // Update storage
   delete localStorage['players'];
@@ -110,6 +120,7 @@ function load() {
   players = JSON.parse(localStorage['players']);
   for(let id in players) {
     addPlayer(null, id);
+    // saveAction('addPlayer', {id: id, name: players[id].name, money: players[id].money}); // DEVELOPMENT ONLY
   }
   update();
 }
@@ -202,7 +213,7 @@ function saveAction(type, act) {
   let action = {};
   if(!act.input && type !== 'addPlayer' && type !== 'removePlayer') return;
   if(type === 'addPlayer' || type === 'removePlayer') {
-    action = {type: type, id: act.id};
+    action = {type: type, id: act.id, name: act.name, money: act.money}
   }
   else {
     action = {type: type, id: act.id, input: act.input};
@@ -237,9 +248,11 @@ function undoAction() {
     players[act.id].money += act.input;
     players[act.targetId].money -= act.input;
   } else if(act.type === 'addPlayer') {
-    console.log('UNDO addPlayer', act.id);
+    console.log('UNDO addPlayer', act.id, act.name, act.money);
+    removePlayer(act.id);
   } else if(act.type === 'removePlayer') {
-    console.log('UNDO removePlayer', act.id);
+    console.log('UNDO removePlayer', act.id, act.name, act.money);
+    addPlayer(act.name, act.id, act.money);
   }
 
   historyIndex--;
@@ -264,9 +277,11 @@ function redoAction() {
     players[act.id].money -= act.input;
     players[act.targetId].money += act.input;
   } else if(act.type === 'addPlayer') {
-    console.log('REDO addPlayer', act.id);
+    console.log('REDO addPlayer', act.id, act.name, act.money);
+    addPlayer(act.name, act.id, act.money);
   } else if(act.type === 'removePlayer') {
-    console.log('REDO removePlayer', act.id);
+    console.log('REDO removePlayer', act.id, act.name,act.money);
+    removePlayer(act.id);
   }
 
   // Update buttons
@@ -298,6 +313,7 @@ $(document).ready(function() {
 
     modal.find('#btn-remove').off('click').on('click', function(ev) {
       modal.modal('hide');
+      saveAction('removePlayer', {id: id, name: players[id].name, money: players[id].money});
       removePlayer(id);
       update();
     });
@@ -322,7 +338,8 @@ $(document).ready(function() {
       }
 
       form.removeClass('has-error');
-      addPlayer(name);
+      const id = addPlayer(name);
+      saveAction('addPlayer', {id: id, name: players[id].name, money: players[id].money});
       modal.modal('hide');
     });
   });
