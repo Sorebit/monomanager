@@ -1,13 +1,12 @@
 // TODO:
 // - Make this a full game? (sockets + old monopoly simulation) 
-// - Fix undoing removePlayer so that player appears in their place before removal
 
 'use strict'
 
 // Utility
 function randomString(len) {
   let text = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   for(let i = 0; i < len; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
@@ -40,7 +39,7 @@ let history = [];
 let historyIndex = -1;
 
 // Add player to manager
-function addPlayer(name, id, money) {
+function addPlayer(name, id, money, prevId) {
   let p;
   if(name && id && typeof(money) === 'number') {
     p = { 
@@ -76,7 +75,16 @@ function addPlayer(name, id, money) {
   el.append(btnGroup);
 
   players[p.id] = p;
-  $('.players').append(el);
+  if(prevId) {
+    // Add it after a specific player
+    el.insertAfter(elFromId(prevId));
+  } else if(prevId === '') {
+    // Prepend it as the first player
+    $('.players').prepend(el);
+  } else {
+    // Append normally
+    $('.players').append(el);
+  }
 
   update();
   return p.id;
@@ -87,7 +95,9 @@ function removePlayer(id) {
     spawnError('Player you want to remove does not exist.');
     return;
   }
+
   const el = elFromId(id);
+  
   delete players[id];
   el.fadeOut(function() {
     el.remove();
@@ -210,10 +220,14 @@ function spawnError(text) {
 }
 
 function saveAction(type, act) {
+  // Construct action object
   let action = {};
   if(!act.input && type !== 'addPlayer' && type !== 'removePlayer') return;
   if(type === 'addPlayer' || type === 'removePlayer') {
     action = {type: type, id: act.id, name: act.name, money: act.money}
+    if(type === 'removePlayer') {
+      action.prevId = act.prevId || '';
+    }
   }
   else {
     action = {type: type, id: act.id, input: act.input};
@@ -222,13 +236,15 @@ function saveAction(type, act) {
     }
   }
 
-  console.log('Saving action', action);
+  // Rebuild stack
   if(historyIndex != history.length - 1) {
-    console.log('Rebuild stack');
     while(historyIndex != history.length - 1)
       history.pop();
     historyIndex = history.length - 1;
   }
+
+  // Save action
+  console.log('Saving action', action);
   history.push(action);
   historyIndex++;
   // Update history buttons
@@ -237,7 +253,6 @@ function saveAction(type, act) {
 }
 
 function undoAction() {
-  // console.log('Undoing', history[historyIndex]);
   // Handle action
   const act = history[historyIndex];
   if(act.type === 'get') {
@@ -248,11 +263,10 @@ function undoAction() {
     players[act.id].money += act.input;
     players[act.targetId].money -= act.input;
   } else if(act.type === 'addPlayer') {
-    console.log('UNDO addPlayer', act.id, act.name, act.money);
     removePlayer(act.id);
   } else if(act.type === 'removePlayer') {
-    console.log('UNDO removePlayer', act.id, act.name, act.money);
-    addPlayer(act.name, act.id, act.money);
+    console.log('UNDO removePlayer', act.id, act.prevId, act.name, act.money);
+    addPlayer(act.name, act.id, act.money, act.prevId);
   }
 
   historyIndex--;
@@ -265,9 +279,8 @@ function undoAction() {
 }
 
 function redoAction() {
-  historyIndex++;
-  // console.log('Redoing', history[historyIndex]);
   // Handle action
+  historyIndex++;
   const act = history[historyIndex];
   if(act.type === 'get') {
     players[act.id].money += act.input;
@@ -277,7 +290,6 @@ function redoAction() {
     players[act.id].money -= act.input;
     players[act.targetId].money += act.input;
   } else if(act.type === 'addPlayer') {
-    console.log('REDO addPlayer', act.id, act.name, act.money);
     addPlayer(act.name, act.id, act.money);
   } else if(act.type === 'removePlayer') {
     console.log('REDO removePlayer', act.id, act.name,act.money);
@@ -313,7 +325,9 @@ $(document).ready(function() {
 
     modal.find('#btn-remove').off('click').on('click', function(ev) {
       modal.modal('hide');
-      saveAction('removePlayer', {id: id, name: players[id].name, money: players[id].money});
+      // If user want to undo removal, we need to know id of player before 'this'
+      const prevId = elFromId(id).prev().data('id');
+      saveAction('removePlayer', {id: id, prevId: prevId, name: players[id].name, money: players[id].money});
       removePlayer(id);
       update();
     });
