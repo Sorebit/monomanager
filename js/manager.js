@@ -252,18 +252,17 @@ function saveAction(type, act) {
   }
 
   // Generate history view text
-  let name = players[action.id].name;
+  let name = escapeHtml(players[action.id].name);
+  let targetName = '';
   action.text = 'Player (<strong>' + name + '</strong>) ';
   if(action.type === 'get') {
-    name = players[action.id].name;
     action.text += '<strong>gets</strong> $' + action.input;
   } else if(action.type === 'pay') {
-    name = players[action.id].name;
     action.text += '<strong>pays</strong> $' + action.input;
   } else if(action.type === 'payTo') {
-    name = players[action.id].name;
+    targetName = escapeHtml(players[action.targetId].name);
     action.text += '<strong>pays</strong> $' + action.input;
-    action.text += ' to player (<strong>' +  players[action.targetId].name + '</strong>)';
+    action.text += ' to player (<strong>' +  targetName + '</strong>)';
   } else if(action.type === 'addPlayer') {
     action.text += '<strong>enters</strong> the game';
   } else if(action.type === 'removePlayer') {
@@ -382,7 +381,6 @@ $(document).ready(function() {
 
     modal.find('#btn-add').off('click').on('click', function(ev) {
       const name = input.val();
-      
       if(!name) {
         form.addClass('has-error');
         return;
