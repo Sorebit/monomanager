@@ -251,12 +251,33 @@ function saveAction(type, act) {
     historyIndex = history.length - 1;
   }
 
+  // Generate history view text
+  let name = players[action.id].name;
+  action.text = 'Player (<strong>' + name + '</strong>) ';
+  if(action.type === 'get') {
+    name = players[action.id].name;
+    action.text += '<strong>gets</strong> $' + action.input;
+  } else if(action.type === 'pay') {
+    name = players[action.id].name;
+    action.text += '<strong>pays</strong> $' + action.input;
+  } else if(action.type === 'payTo') {
+    name = players[action.id].name;
+    action.text += '<strong>pays</strong> $' + action.input;
+    action.text += ' to player (<strong>' +  players[action.targetId].name + '</strong>)';
+  } else if(action.type === 'addPlayer') {
+    action.text += '<strong>enters</strong> the game';
+  } else if(action.type === 'removePlayer') {
+    action.text += '<strong>leaves</strong> the game';
+  }
+
   // Save action
   history.push(action);
   historyIndex++;
   // Update history buttons
   $('.btn-undo').attr('disabled', false);
   $('.btn-redo').attr('disabled', true);
+
+  updateHistoryView();
 }
 
 function undoAction() {
@@ -307,6 +328,17 @@ function redoAction() {
     $('.btn-redo').attr('disabled', true);
   }
   $('.btn-undo').attr('disabled', false);
+}
+
+function updateHistoryView() {
+  let shown = 0;
+  $('.history').html('<h4>History <small>(5 latest entries)</small></h4>');
+  for(let i = Math.min(historyIndex, history.length - 1); i >= 0 && shown < 5; i--) {
+    let e = $('<div class="alert alert-info history-element">');
+    e.append($('<p>').html(history[i].text));
+    $('.history').append(e);
+    shown++;
+  }
 }
 
 $(document).ready(function() {
@@ -421,11 +453,13 @@ $(document).ready(function() {
   $(document).on('click', '.btn-undo', function(ev) {
     undoAction();
     update();
+    updateHistoryView();
   });
 
   $(document).on('click', '.btn-redo', function(ev) {
     redoAction();
     update();
+    updateHistoryView();
   });
 
   // Load players from storage

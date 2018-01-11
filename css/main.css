@@ -47,3 +47,13 @@ body {
 .player-money {
   margin-bottom: 8px !important;
 }
+
+.history {
+  margin: 0 auto;
+  max-width: 800px;
+}
+
+.history-element {
+  margin-bottom: 10px !important;
+  text-align: center;
+}
