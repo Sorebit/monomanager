@@ -9,3 +9,12 @@
 
 ### Standard preview:
 ![preview](/assets/preview.png)
+
+# MonoManager
+
+Single state queue manager.
+A single que to store antyhing.
+
+a little js
+
+a lil like few kb
